@@ -1,259 +1,198 @@
-/* =============================================
-   JAVASCRIPT – Finance Portfolio
-   ============================================= */
-
 (function () {
-    'use strict';
+  'use strict';
 
-    /* ── Navbar scroll effect ── */
-    const navbar = document.getElementById('navbar');
-    const navLinks = document.querySelectorAll('.nav-link');
+  var root = document.documentElement;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 60) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-        highlightActiveSection();
-    }, { passive: true });
+  /* ---------- Theme toggle ---------- */
+  var toggle = document.getElementById('themeToggle');
+  var metaThemes = document.querySelectorAll('meta[name="theme-color"]');
 
-    /* ── Active section highlight ── */
-    function highlightActiveSection() {
-        const sections = document.querySelectorAll('section[id]');
-        const scrollPos = window.scrollY + 120;
-        sections.forEach(sec => {
-            const link = document.querySelector(`.nav-link[href="#${sec.id}"]`);
-            if (!link) return;
-            if (sec.offsetTop <= scrollPos && sec.offsetTop + sec.offsetHeight > scrollPos) {
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-            }
-        });
-    }
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    toggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    metaThemes.forEach(function (m) { m.setAttribute('content', theme === 'dark' ? '#0c1214' : '#f3f4f1'); });
+    try { localStorage.setItem('theme', theme); } catch (e) { /* storage unavailable */ }
+  }
 
-    /* ── Hamburger menu ── */
-    const hamburger = document.getElementById('hamburger');
-    const navLinksContainer = document.getElementById('navLinks');
+  applyTheme(root.getAttribute('data-theme') || 'light');
 
-    hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('open');
-        navLinksContainer.classList.toggle('open');
+  toggle.addEventListener('click', function (ev) {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+
+    if (!document.startViewTransition || reduceMotion) { applyTheme(next); return; }
+
+    // Circular wipe that grows from the button
+    var r = toggle.getBoundingClientRect();
+    var x = r.left + r.width / 2, y = r.top + r.height / 2;
+    var radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    var t = document.startViewTransition(function () { applyTheme(next); });
+    t.ready.then(function () {
+      root.animate(
+        { clipPath: ['circle(0px at ' + x + 'px ' + y + 'px)', 'circle(' + radius + 'px at ' + x + 'px ' + y + 'px)'] },
+        { duration: 600, easing: 'cubic-bezier(.22,1,.36,1)', pseudoElement: '::view-transition-new(root)' }
+      );
+    }).catch(function () { });
+  });
+
+  /* ---------- Nav: scrolled state, mobile menu, active link ---------- */
+  var nav = document.getElementById('nav');
+  var menuBtn = document.getElementById('menuBtn');
+
+  menuBtn.addEventListener('click', function () {
+    var open = nav.classList.toggle('is-open');
+    menuBtn.setAttribute('aria-expanded', String(open));
+    menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  });
+  document.querySelectorAll('#navLinks a').forEach(function (a) {
+    a.addEventListener('click', function () {
+      nav.classList.remove('is-open');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.setAttribute('aria-label', 'Open menu');
     });
-    navLinksContainer.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            hamburger.classList.remove('open');
-            navLinksContainer.classList.remove('open');
-        });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && nav.classList.contains('is-open')) { menuBtn.click(); menuBtn.focus(); }
+  });
+
+  var navLinks = {};
+  document.querySelectorAll('#navLinks a').forEach(function (a) { navLinks[a.getAttribute('href').slice(1)] = a; });
+  var spy = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      Object.keys(navLinks).forEach(function (k) { navLinks[k].classList.toggle('is-active', k === en.target.id); });
     });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  Object.keys(navLinks).forEach(function (id) { var s = document.getElementById(id); if (s) spy.observe(s); });
 
-    /* ── Animated counter ── */
-    function animateCounter(el) {
-        const target = parseInt(el.dataset.target);
-        const duration = 2000;
-        const start = performance.now();
-        const step = (now) => {
-            const elapsed = now - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            el.textContent = Math.floor(eased * target);
-            if (progress < 1) requestAnimationFrame(step);
-            else el.textContent = target;
-        };
-        requestAnimationFrame(step);
+  /* ---------- Split headings into words for the mask reveal ---------- */
+  function splitWords(el) {
+    var wi = 0;
+    function walk(node) {
+      Array.prototype.slice.call(node.childNodes).forEach(function (child) {
+        if (child.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          child.textContent.split(/(\s+)/).forEach(function (part) {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+            var w = document.createElement('span'); w.className = 'w';
+            var inner = document.createElement('span'); inner.textContent = part;
+            inner.style.setProperty('--wi', wi++);
+            w.appendChild(inner); frag.appendChild(w);
+          });
+          child.replaceWith(frag);
+        } else if (child.nodeType === 1) {
+          walk(child);
+        }
+      });
     }
+    el.setAttribute('aria-label', el.textContent.replace(/\s+/g, ' ').trim());
+    walk(el);
+    // Hide the split fragments from screen readers; the aria-label carries the text
+    el.querySelectorAll('.w').forEach(function (w) { w.setAttribute('aria-hidden', 'true'); });
+  }
+  document.querySelectorAll('.split').forEach(splitWords);
 
-    /* ── Intersection Observer for reveals ── */
-    const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('visible');
-                // Animate skill bars
-                const bars = entry.target.querySelectorAll('.skill-fill');
-                bars.forEach(bar => bar.classList.add('animated'));
-                // Animate counters
-                const counters = entry.target.querySelectorAll('[data-target]');
-                counters.forEach(c => { if (!c.dataset.animated) { c.dataset.animated = 'true'; animateCounter(c); } });
-                revealObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+  /* ---------- Count-up ---------- */
+  function countUp(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10);
+    if (reduceMotion) { el.textContent = target; return; }
+    var start = null, dur = 1400;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.round(target * eased);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    el.textContent = '0';
+    requestAnimationFrame(step);
+  }
 
-    // Add reveal class to cards and sections
-    const revealEls = document.querySelectorAll(
-        '.highlight-card, .expertise-card, .edu-card, .cert-item, .cert-featured, .contact-card, .about-text, .about-highlights'
-    );
-    revealEls.forEach((el, i) => {
-        el.classList.add('reveal');
-        if (i % 4 === 1) el.classList.add('reveal-delay-1');
-        if (i % 4 === 2) el.classList.add('reveal-delay-2');
-        if (i % 4 === 3) el.classList.add('reveal-delay-3');
-        revealObserver.observe(el);
+  /* ---------- Scroll reveals ---------- */
+  var revealTargets = document.querySelectorAll('[data-reveal], .split');
+  if (!('IntersectionObserver' in window)) {
+    revealTargets.forEach(function (el) { el.classList.add('is-in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('is-in');
+        en.target.querySelectorAll('[data-count]').forEach(countUp);
+        io.unobserve(en.target);
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    revealTargets.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---------- Hero load sequence ---------- */
+  var hero = document.querySelector('.hero');
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { hero.classList.add('is-in'); });
+  });
+
+  /* ---------- Scroll-linked: nav shadow, portrait parallax, experience rule ---------- */
+  var portraitImg = document.getElementById('portraitImg');
+  var roles = document.getElementById('roles');
+  var rule = roles ? roles.querySelector('.roles-rule span') : null;
+  var ticking = false;
+
+  function onScroll() {
+    var y = window.scrollY;
+    nav.classList.toggle('is-scrolled', y > 24);
+
+    if (!reduceMotion) {
+      if (portraitImg && y < innerHeight * 1.2) {
+        portraitImg.style.transform = 'scale(1.08) translateY(' + (y * 0.06).toFixed(1) + 'px)';
+      }
+      if (rule) {
+        var r = roles.getBoundingClientRect();
+        var p = (innerHeight * 0.6 - r.top) / r.height;
+        rule.style.setProperty('--p', Math.max(0, Math.min(1, p)).toFixed(3));
+      }
+    } else if (rule) {
+      rule.style.setProperty('--p', 1);
+    }
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { requestAnimationFrame(onScroll); ticking = true; }
+  }, { passive: true });
+  onScroll();
+
+  /* ---------- FAQ: animate open/close height ---------- */
+  document.querySelectorAll('.faq details').forEach(function (d) {
+    var summary = d.querySelector('summary');
+    var answer = d.querySelector('.answer');
+    summary.addEventListener('click', function (e) {
+      if (reduceMotion || !answer.animate) return;
+      e.preventDefault();
+      if (d.open) {
+        var h = answer.offsetHeight;
+        answer.animate({ height: [h + 'px', '0px'], opacity: [1, 0] }, { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' })
+          .onfinish = function () { d.open = false; };
+      } else {
+        d.open = true;
+        var full = answer.offsetHeight;
+        answer.animate({ height: ['0px', full + 'px'], opacity: [0, 1] }, { duration: 250, easing: 'cubic-bezier(.22,1,.36,1)' });
+      }
     });
+  });
 
-    // Hero stats counter
-    const heroSection = document.getElementById('hero');
-    const heroObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                document.querySelectorAll('[data-target]').forEach(c => {
-                    if (!c.dataset.animated) { c.dataset.animated = 'true'; animateCounter(c); }
-                });
-                heroObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.3 });
-    if (heroSection) heroObserver.observe(heroSection);
+  /* ---------- Contact form: compose a mailto ---------- */
+  var form = document.getElementById('contactForm');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = form.elements;
+    var name = f.namedItem('name').value.trim();
+    var org = f.namedItem('org').value.trim();
+    var msg = f.namedItem('message').value.trim();
+    var subject = 'Enquiry from ' + name + (org ? ' (' + org + ')' : '');
+    var body = msg + '\n\n' + name + (org ? '\n' + org : '');
+    window.location.href = 'mailto:maheshgarg76@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  });
 
-    // Timeline items
-    const timelineItems = document.querySelectorAll('.timeline-item');
-    const tlObserver = new IntersectionObserver(entries => {
-        entries.forEach((entry, i) => {
-            if (entry.isIntersecting) {
-                setTimeout(() => entry.target.classList.add('visible'), i * 100);
-                tlObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.1 });
-    timelineItems.forEach(item => tlObserver.observe(item));
-
-    // Skill bars
-    const skillObserver = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.querySelectorAll('.skill-fill').forEach(b => b.classList.add('animated'));
-                skillObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.2 });
-    document.querySelectorAll('.expertise-card').forEach(c => skillObserver.observe(c));
-
-    /* ── Floating particles ── */
-    function createParticles() {
-        const container = document.getElementById('particles');
-        if (!container) return;
-        for (let i = 0; i < 40; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.cssText = `
-                left: ${Math.random() * 100}%;
-                top: ${Math.random() * 100}%;
-                animation-duration: ${8 + Math.random() * 15}s;
-                animation-delay: ${Math.random() * 10}s;
-                opacity: ${0.2 + Math.random() * 0.6};
-                width: ${1 + Math.random() * 3}px;
-                height: ${1 + Math.random() * 3}px;
-            `;
-            container.appendChild(p);
-        }
-    }
-    createParticles();
-
-    /* ── Smooth scroll for anchor links ── */
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', (e) => {
-            const target = document.querySelector(anchor.getAttribute('href'));
-            if (target) {
-                e.preventDefault();
-                const navHeight = navbar.offsetHeight;
-                const top = target.getBoundingClientRect().top + window.scrollY - navHeight - 20;
-                window.scrollTo({ top, behavior: 'smooth' });
-            }
-        });
-    });
-
-    /* ── Mouse parallax on hero portrait ── */
-    const hero = document.getElementById('hero');
-    const portrait = document.querySelector('.hero-portrait');
-    if (hero && portrait) {
-        hero.addEventListener('mousemove', (e) => {
-            const rect = hero.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dx = (e.clientX - cx) / rect.width;
-            const dy = (e.clientY - cy) / rect.height;
-            portrait.style.transform = `translate(${dx * 12}px, ${dy * 12}px)`;
-        });
-        hero.addEventListener('mouseleave', () => {
-            portrait.style.transform = 'translate(0, 0)';
-            portrait.style.transition = 'transform 0.8s ease';
-        });
-        hero.addEventListener('mouseenter', () => {
-            portrait.style.transition = 'transform 0.1s ease';
-        });
-    }
-
-    /* ── Expertise card tilt ── */
-    document.querySelectorAll('.expertise-card').forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const rx = (e.clientY - cy) / (rect.height / 2) * -6;
-            const ry = (e.clientX - cx) / (rect.width / 2) * 6;
-            card.style.transform = `perspective(600px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
-        });
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
-        });
-    });
-
-    /* ── Typed subtitle effect ── */
-    const subtitles = [
-        'Chief Financial Officer',
-        'US Certified Public Accountant',
-        'Chartered Financial Analyst',
-        'DipIFRS Specialist',
-        'Corporate Finance Expert'
-    ];
-    const chip = document.querySelector('.title-chip:first-child');
-    if (chip) {
-        let si = 0, ci = 0, deleting = false;
-        function typeLoop() {
-            const current = subtitles[si];
-            if (!deleting) {
-                chip.textContent = current.slice(0, ++ci);
-                if (ci === current.length) { deleting = true; setTimeout(typeLoop, 2000); return; }
-            } else {
-                chip.textContent = current.slice(0, --ci);
-                if (ci === 0) { deleting = false; si = (si + 1) % subtitles.length; }
-            }
-            setTimeout(typeLoop, deleting ? 40 : 80);
-        }
-        setTimeout(typeLoop, 1500);
-    }
-
-    /* ── Gold cursor trail (desktop only) ── */
-    if (window.innerWidth > 768) {
-        const trail = [];
-        const TRAIL_LEN = 8;
-        for (let i = 0; i < TRAIL_LEN; i++) {
-            const dot = document.createElement('div');
-            dot.style.cssText = `
-                position: fixed; pointer-events: none; z-index: 9999; border-radius: 50%;
-                width: ${4 - i * 0.3}px; height: ${4 - i * 0.3}px;
-                background: rgba(201,168,76,${0.5 - i * 0.05});
-                transition: transform 0.05s ease; transform: translate(-50%,-50%);
-            `;
-            document.body.appendChild(dot);
-            trail.push({ el: dot, x: 0, y: 0 });
-        }
-        let mx = 0, my = 0;
-        document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-        function animTrail() {
-            let px = mx, py = my;
-            trail.forEach((t, i) => {
-                t.x += (px - t.x) * 0.35;
-                t.y += (py - t.y) * 0.35;
-                t.el.style.left = t.x + 'px';
-                t.el.style.top = t.y + 'px';
-                px = t.x; py = t.y;
-            });
-            requestAnimationFrame(animTrail);
-        }
-        animTrail();
-    }
-
-    console.log('%c💼 Mahesh Garg – Finance Portfolio', 'color:#c9a84c;font-size:1.2rem;font-weight:bold;');
-    console.log('%cBuilt with premium design by Antigravity AI', 'color:#4a9fd9;font-size:0.85rem;');
+  /* ---------- Footer year ---------- */
+  var yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 })();
