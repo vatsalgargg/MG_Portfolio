@@ -130,6 +130,7 @@
   requestAnimationFrame(function () {
     requestAnimationFrame(function () { hero.classList.add('is-in'); });
   });
+  setTimeout(function () { hero.classList.add('is-settled'); }, reduceMotion ? 0 : 1300);
 
   /* ---------- Scroll-linked: nav shadow, portrait parallax, experience rule ---------- */
   var portraitImg = document.getElementById('portraitImg');
