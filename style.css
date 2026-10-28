@@ -47,6 +47,10 @@
 
   /* Motion */
   --ease-out: cubic-bezier(.22, 1, .36, 1);
+  /* Softer curve for content entering: motion spread over the whole duration, no snap */
+  --ease-reveal: cubic-bezier(.25, .8, .3, 1);
+  --t-reveal: 900ms;
+  --stagger: 90ms;
   --t-ui: 200ms;
   --t-hero: 850ms;
 
@@ -361,6 +365,15 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
   width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%;
   transform: scale(1.08);
   will-change: transform;
+  backface-visibility: hidden;
+}
+/* Curtain that lifts off the portrait: a transform, so it runs on the GPU */
+.portrait::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--paper);
+  transform-origin: top;
+  transform: scaleY(0);
+  pointer-events: none;
 }
 
 .ledger-card {
@@ -385,26 +398,31 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
 .ledger-card li span:last-child { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-micro); white-space: nowrap; }
 
 /* Hero load sequence (only when JS is running) */
-.js .hero [data-hero] { opacity: 0; }
-.js .hero .hero-name .line > span { transform: translateY(105%); }
-.js .hero .portrait { clip-path: inset(100% 0 0 0 round var(--radius)); }
+.js .hero [data-hero] { opacity: 0; transform: translate3d(0, 14px, 0); }
+.js .hero .hero-name .line > span { transform: translate3d(0, 105%, 0); }
+.js .hero .portrait::after { transform: scaleY(1); }
+.js .hero .portrait img { transform: scale(1.18); }
 
 .hero.is-in [data-hero] {
-  opacity: 1;
-  transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+  opacity: 1; transform: none;
+  transition: opacity var(--t-reveal) var(--ease-reveal), transform var(--t-reveal) var(--ease-reveal);
   transition-delay: calc(var(--d, 0) * 1ms);
 }
 .hero.is-in .hero-name .line > span {
   transform: none;
-  transition: transform var(--t-hero) var(--ease-out);
+  transition: transform 1000ms var(--ease-reveal);
   transition-delay: calc(var(--d, 0) * 1ms);
 }
-.hero.is-in .portrait {
-  clip-path: inset(0 0 0 0 round var(--radius));
-  transition: clip-path 1000ms var(--ease-out) 150ms;
+.hero.is-in .portrait::after {
+  transform: scaleY(0);
+  transition: transform 1100ms var(--ease-reveal) 200ms;
 }
-.js .hero .ledger-card[data-hero] { transform: translateY(16px); }
-.hero.is-in .ledger-card[data-hero] { transform: none; }
+.hero.is-in .portrait img {
+  transform: scale(1.08);
+  transition: transform 1600ms var(--ease-reveal) 200ms;
+}
+/* After the intro, parallax drives the image directly: no transition lag */
+.hero.is-settled .portrait img { transition: none; }
 
 /* ==========================================================================
    Credentials marquee
@@ -414,12 +432,18 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
   border-block: 1px solid var(--line);
   overflow: hidden;
   padding: 1.1rem 0;
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  position: relative;
 }
+/* Edge fades as overlays (cheap) instead of a mask over moving content (expensive) */
+.marquee::before, .marquee::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 12%; z-index: 1; pointer-events: none;
+}
+.marquee::before { left: 0; background: linear-gradient(90deg, var(--paper), transparent); }
+.marquee::after { right: 0; background: linear-gradient(-90deg, var(--paper), transparent); }
 .marquee-track {
   display: flex; width: max-content;
   animation: marquee 48s linear infinite;
+  will-change: transform;
 }
 .marquee:hover .marquee-track { animation-play-state: paused; }
 .marquee-track ul { display: flex; align-items: center; }
@@ -430,7 +454,7 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
 .marquee-track li::after {
   content: ""; width: 6px; height: 6px; background: var(--brass); transform: rotate(45deg);
 }
-@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes marquee { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(-50%, 0, 0); } }
 
 /* ==========================================================================
    Sections
@@ -873,20 +897,25 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
 
 .js [data-reveal] {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
-  transition-delay: calc(var(--i, 0) * 80ms);
+  transform: translate3d(0, 20px, 0);
+  transition: opacity var(--t-reveal) var(--ease-reveal), transform var(--t-reveal) var(--ease-reveal);
+  transition-delay: calc(var(--i, 0) * var(--stagger));
 }
+.js [data-reveal]:not(.is-in) { will-change: opacity, transform; }
 .js [data-reveal].is-in { opacity: 1; transform: none; }
 
-/* Heading words rise out of a mask */
-.js .split .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .08em; margin-bottom: -.08em; }
+/* Heading words rise out of a mask; the mask is dropped once they land */
+.js .split .w {
+  display: inline-block; overflow: hidden; vertical-align: top;
+  padding: .1em .06em .12em; margin: -.1em -.06em -.12em;
+}
 .js .split .w > span {
-  display: inline-block; transform: translateY(110%);
-  transition: transform 800ms var(--ease-out);
-  transition-delay: calc(var(--wi, 0) * 45ms);
+  display: inline-block; transform: translate3d(0, 110%, 0);
+  transition: transform 1000ms var(--ease-reveal);
+  transition-delay: calc(var(--wi, 0) * 40ms);
 }
 .js .split.is-in .w > span { transform: none; }
+.js .split.is-done .w { overflow: visible; }
 
 /* Experience progress rule */
 .roles-rule {
@@ -967,6 +996,13 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
   .hero-role { font-size: .8rem; }
 }
 
+/* Phones and tablets: lighter effects so scrolling and reveals stay at full frame rate */
+@media (max-width: 960px), (hover: none) {
+  .nav { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--surface); }
+  :root { --stagger: 60ms; --t-reveal: 800ms; }
+  .js [data-reveal] { transform: translate3d(0, 14px, 0); }
+}
+
 /* Touch screens: no sticky hover states after a tap */
 @media (hover: none) {
   .area:hover::before { transform: scaleY(0); }
@@ -989,7 +1025,8 @@ a.status:hover { border-color: var(--ledger); color: var(--ink); }
   *, *::before, *::after { animation: none !important; transition-duration: 1ms !important; transition-delay: 0ms !important; }
   .js [data-reveal], .js .hero [data-hero] { opacity: 1; transform: none; }
   .js .hero .hero-name .line > span, .js .split .w > span { transform: none; }
-  .js .hero .portrait { clip-path: none; }
+  .js .hero .portrait::after { transform: scaleY(0); }
+  .js .hero .portrait img { transform: none; }
   .js .stat-figure::before, .js .stat-figure::after { transform: none; }
   .portrait img { transform: none !important; }
 }

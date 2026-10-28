@@ -106,12 +106,13 @@
   function countUp(el) {
     var target = parseInt(el.getAttribute('data-count'), 10);
     if (reduceMotion) { el.textContent = target; return; }
-    var start = null, dur = 1400;
+    var start = null, dur = 1600, shown = -1;
     function step(ts) {
       if (!start) start = ts;
       var p = Math.min((ts - start) / dur, 1);
-      var eased = 1 - Math.pow(1 - p, 4);
-      el.textContent = Math.round(target * eased);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var v = Math.round(target * eased);
+      if (v !== shown) { el.textContent = v; shown = v; } // touch the DOM only when the digit changes
       if (p < 1) requestAnimationFrame(step);
     }
     el.textContent = '0';
@@ -126,34 +127,53 @@
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
         if (!en.isIntersecting) return;
-        en.target.classList.add('is-in');
-        en.target.querySelectorAll('[data-count]').forEach(countUp);
-        io.unobserve(en.target);
+        var t = en.target;
+        t.classList.add('is-in');
+        t.querySelectorAll('[data-count]').forEach(countUp);
+        if (t.classList.contains('split')) {
+          setTimeout(function () { t.classList.add('is-done'); }, 1600); // drop the word masks once landed
+        }
+        io.unobserve(t);
       });
-    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+    }, { rootMargin: '0px 0px -4% 0px', threshold: 0 }); // start as soon as content enters, so nothing pops in late
     revealTargets.forEach(function (el) { io.observe(el); });
   }
 
   /* ---------- Hero load sequence ---------- */
   var hero = document.querySelector('.hero');
-  requestAnimationFrame(function () {
-    requestAnimationFrame(function () { hero.classList.add('is-in'); });
-  });
-  setTimeout(function () { hero.classList.add('is-settled'); }, reduceMotion ? 0 : 1300);
+  var heroStarted = false;
+  function startHero() {
+    if (heroStarted) return;
+    heroStarted = true;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { hero.classList.add('is-in'); });
+    });
+    // Settle only after the longest intro transition (portrait, ~1.8s) has finished
+    setTimeout(function () { hero.classList.add('is-settled'); }, reduceMotion ? 0 : 2000);
+  }
+  // Wait briefly for the web fonts so text doesn't swap mid-animation; never wait long
+  if (document.fonts && document.fonts.ready && !reduceMotion) {
+    document.fonts.ready.then(startHero);
+    setTimeout(startHero, 700);
+  } else {
+    startHero();
+  }
 
   /* ---------- Scroll-linked: nav shadow, portrait parallax, experience rule ---------- */
   var portraitImg = document.getElementById('portraitImg');
   var roles = document.getElementById('roles');
   var rule = roles ? roles.querySelector('.roles-rule span') : null;
+  // Parallax and the progress rule only where they run smoothly: large screens with a mouse
+  var fineScreen = window.matchMedia('(min-width: 1101px) and (hover: hover)');
   var ticking = false;
 
   function onScroll() {
     var y = window.scrollY;
     nav.classList.toggle('is-scrolled', y > 24);
 
-    if (!reduceMotion) {
-      if (portraitImg && y < innerHeight * 1.2) {
-        portraitImg.style.transform = 'scale(1.08) translateY(' + (y * 0.06).toFixed(1) + 'px)';
+    if (!reduceMotion && fineScreen.matches) {
+      if (portraitImg && hero.classList.contains('is-settled') && y < innerHeight * 1.2) {
+        portraitImg.style.transform = 'translate3d(0,' + (y * 0.06).toFixed(1) + 'px,0) scale(1.08)';
       }
       if (rule) {
         var r = roles.getBoundingClientRect();
@@ -179,12 +199,12 @@
       e.preventDefault();
       if (d.open) {
         var h = answer.offsetHeight;
-        answer.animate({ height: [h + 'px', '0px'], opacity: [1, 0] }, { duration: 220, easing: 'cubic-bezier(.22,1,.36,1)' })
+        answer.animate({ height: [h + 'px', '0px'], opacity: [1, 0] }, { duration: 260, easing: 'cubic-bezier(.25,.8,.3,1)' })
           .onfinish = function () { d.open = false; };
       } else {
         d.open = true;
         var full = answer.offsetHeight;
-        answer.animate({ height: ['0px', full + 'px'], opacity: [0, 1] }, { duration: 250, easing: 'cubic-bezier(.22,1,.36,1)' });
+        answer.animate({ height: ['0px', full + 'px'], opacity: [0, 1] }, { duration: 320, easing: 'cubic-bezier(.25,.8,.3,1)' });
       }
     });
   });
