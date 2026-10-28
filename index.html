@@ -20,6 +20,13 @@
                 t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
             d.setAttribute('data-theme', t);
+
+            // A refresh always starts at the top: no restored scroll, no stale #section
+            if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+            var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+            if (nav && nav.type === 'reload' && location.hash) {
+                history.replaceState(null, '', location.pathname + location.search);
+            }
         })();
     </script>
 
@@ -33,7 +40,7 @@
     <link rel="preload" as="image" href="images/mgphoto-1600.jpg"
         imagesrcset="images/mgphoto-1600.jpg 1600w, images/mgphoto-2400.jpg 2400w, images/mgphoto-3840.jpg 3840w"
         imagesizes="(max-width: 960px) 92vw, 446px">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 
 <body>
@@ -91,16 +98,14 @@
                     </h1>
 
                     <p class="hero-role" data-hero style="--d:420">
-                        <span>Chief Financial Officer, Bando India</span><span class="sep" aria-hidden="true"></span>
-                        <span>US CPA</span><span class="sep" aria-hidden="true"></span>
-                        <span>CFA</span><span class="sep" aria-hidden="true"></span>
-                        <span>DipIFRS</span>
+                        <span class="role-main">Chief Financial Officer, Bando India</span>
+                        <span class="role-creds"><span>US CPA</span><span class="sep" aria-hidden="true"></span><span>CFA</span><span class="sep" aria-hidden="true"></span><span>DipIFRS</span></span>
                     </p>
 
                     <p class="hero-intro" data-hero style="--d:520">
                         I joined Bando India in 2010, during its greenfield phase, and have led its finance function
-                        since. Twenty-seven years in audit, tax, treasury and reporting, most of them within a Japanese
-                        manufacturing group.
+                        ever since. I have spent twenty-seven years in audit, tax, treasury and reporting, most of them
+                        within a Japanese manufacturing group.
                     </p>
 
                     <div class="hero-actions" data-hero style="--d:640">
@@ -141,7 +146,7 @@
                         <h2>Currently</h2>
                         <ul>
                             <li><span>CFO, Bando India</span><span>since 2010</span></li>
-                            <li><span>Partner, KE CPA's</span><span>since 2025</span></li>
+                            <li><span>Partner, KE CPA’s</span><span>since 2025</span></li>
                             <li><span>Bengaluru, India</span><span>IST</span></li>
                         </ul>
                     </aside>
@@ -183,7 +188,7 @@
                     </div>
                     <div class="stat" data-reveal style="--i:2">
                         <span class="stat-figure">$<span data-count="15">15</span>M+</span>
-                        <p>Tax litigation resolved in the company's favour</p>
+                        <p>Tax litigation resolved in the company’s favour</p>
                     </div>
                     <div class="stat" data-reveal style="--i:3">
                         <span class="stat-figure"><span data-count="35">35</span>+</span>
@@ -197,8 +202,8 @@
                             and JPY</span></li>
                     <li data-reveal style="--i:2"><strong>₹15 Cr+</strong><span>Released from working capital</span>
                     </li>
-                    <li data-reveal style="--i:3"><strong>8 to 25+</strong><span>Finance team grown, five promoted
-                            into leadership</span></li>
+                    <li data-reveal style="--i:3"><strong>8 to 25+</strong><span>Finance team growth, with five
+                            promoted into leadership roles</span></li>
                 </ul>
             </div>
         </section>
@@ -209,7 +214,7 @@
                 <div class="section-head">
                     <p class="section-index"><b>02</b> Recognition</p>
                     <h2 class="section-title split">Noted by peers in the profession.</h2>
-                    <p class="callout" data-reveal><strong>3</strong> this year</p>
+                    <p class="callout" data-reveal><strong>3</strong> in 2026</p>
                 </div>
 
                 <div class="honours">
@@ -234,12 +239,12 @@
                             <p class="honour-kind">Nomination · 2027</p>
                             <h3>AI-First CFO of the Year</h3>
                             <p class="honour-by">CFO Ascend AI Excellence Awards 2027, presented by CXO Lanes. Winners
-                                are announced on 12 January 2027 in New Delhi.</p>
+                                will be announced on 12 January 2027 in New Delhi.</p>
                         </article>
                         <article class="honour" data-reveal style="--i:1">
                             <p class="honour-kind">Feature · August 2026</p>
-                            <h3>The 365 Circle: C-Suite Advantage</h3>
-                            <blockquote>"The CFO who believes governance should accelerate growth, not slow it."
+                            <h3>The 365 Circle: C‑Suite Advantage</h3>
+                            <blockquote>“The CFO who believes governance should accelerate growth, not slow it.”
                             </blockquote>
                             <p class="honour-by">Leadership profile tracing the path from audit clerk in 1996 to Chief
                                 Financial Officer.</p>
@@ -269,18 +274,18 @@
                                 <span class="role-place">Bengaluru, Karnataka</span>
                             </div>
                             <p class="role-title">Chief Financial Officer · General Manager, Finance &amp; Accounts</p>
-                            <p class="role-desc">Joined during the greenfield phase and has run finance through each
+                            <p class="role-desc">Joined during the greenfield phase and led finance through every
                                 stage since: expansion, treasury, international tax, transfer pricing, ERP and
                                 board-level planning.</p>
                             <ul>
-                                <li>$20M+ improvement in EBITDA and $5M+ in SG&amp;A and operating savings, 2016 to 2026.
+                                <li>Delivered a $20M+ improvement in EBITDA and $5M+ in SG&amp;A and operating savings, 2016 to 2026.
                                 </li>
                                 <li>Led the SAP S/4HANA implementation through go-live in April 2026.</li>
                                 <li>Resolved $15M+ in tax litigation with favourable outcomes.</li>
-                                <li>Sixteen consecutive years of unqualified audit opinions.</li>
+                                <li>Secured unqualified audit opinions for sixteen consecutive years.</li>
                                 <li>Reduced FX exposure by 35% across USD, EUR and JPY operations.</li>
-                                <li>Built the finance team from 8 to more than 25, and developed five into leadership
-                                    roles.</li>
+                                <li>Built the finance team from 8 to more than 25 and developed five members into
+                                    leadership roles.</li>
                             </ul>
                             <div class="tags">
                                 <span>SAP S/4HANA</span><span>IFRS</span><span>JSOX</span><span>Transfer
@@ -293,7 +298,7 @@
                         <p class="role-when"><span class="now">Current</span><br>Jul 2025 to now</p>
                         <div>
                             <div class="role-top">
-                                <h3>Knowledge Excellence CPA's</h3>
+                                <h3>Knowledge Excellence CPA’s</h3>
                                 <span class="role-place">Advisory practice</span>
                             </div>
                             <p class="role-title">Partner</p>
@@ -327,7 +332,8 @@
                             </div>
                             <p class="role-title">Assistant Accounts Manager</p>
                             <p class="role-desc">IGAAP closing and finance operations for 35 group companies, with
-                                project reporting, fund raising from banks and institutions, direct tax and treasury.
+                                project reporting, fundraising from banks and financial institutions, direct tax and
+                                treasury.
                             </p>
                         </div>
                     </article>
@@ -528,8 +534,8 @@
                         <summary>What roles are you considering?<span class="plus" aria-hidden="true"></span>
                         </summary>
                         <div class="answer">
-                            <p>CFO, VP Finance and Finance Director roles with multinationals in manufacturing,
-                                automotive and industrial sectors. I am also open to consulting and board
+                            <p>I am considering CFO, VP Finance and Finance Director roles with multinationals in
+                                the manufacturing, automotive and industrial sectors. I am also open to consulting and board
                                 engagements. My notice period is 60 days.</p>
                         </div>
                     </details>
@@ -537,8 +543,9 @@
                         <summary>How familiar are you with Japanese parent companies?<span class="plus"
                                 aria-hidden="true"></span></summary>
                         <div class="answer">
-                            <p>Sixteen years. That covers JSOX, IFRS reporting to the parent, transfer pricing,
-                                multi-currency operations in USD, EUR and JPY, and FDI and FIPB approvals.</p>
+                            <p>I have worked within a Japanese group for sixteen years. That covers JSOX, IFRS
+                                reporting to the parent, transfer pricing, multi-currency operations in USD, EUR and
+                                JPY, and FDI and FIPB approvals.</p>
                         </div>
                     </details>
                     <details>
@@ -553,15 +560,15 @@
                         <summary>Have you set up finance for a greenfield operation?<span class="plus"
                                 aria-hidden="true"></span></summary>
                         <div class="answer">
-                            <p>Yes. I joined Bando India in 2010 during its greenfield phase, and built its controls,
-                                treasury and reporting from the first year.</p>
+                            <p>Yes. I joined Bando India in 2010, during its greenfield phase, and built its
+                                controls, treasury and reporting from the first year.</p>
                         </div>
                     </details>
                     <details>
                         <summary>Do you work with US clients?<span class="plus" aria-hidden="true"></span></summary>
                         <div class="answer">
                             <p>Yes. I hold a US CPA license from Washington State and advise multinational clients as
-                                a Partner at Knowledge Excellence CPA's.</p>
+                                a Partner at Knowledge Excellence CPA’s.</p>
                         </div>
                     </details>
                 </div>
@@ -574,7 +581,7 @@
                 <div class="contact">
                     <div>
                         <p class="section-index"><b>08</b> Contact</p>
-                        <h2 class="split">Let's talk <em>numbers.</em></h2>
+                        <h2 class="split">Let’s talk <em>numbers.</em></h2>
                         <p class="contact-lead" data-reveal>Open to CFO, VP Finance and Finance Director roles with
                             multinational manufacturers, and to board and advisory work.</p>
                         <a class="mail-link" href="mailto:maheshgarg76@gmail.com" data-reveal>
@@ -650,7 +657,7 @@
         </div>
     </footer>
 
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=5"></script>
 </body>
 
 </html>

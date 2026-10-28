@@ -4,6 +4,15 @@
   var root = document.documentElement;
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ---------- Refresh lands at the top ---------- */
+  function toTop() {
+    if (location.hash) return; // a shared #section link still opens at that section
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }
+  toTop();
+  window.addEventListener('load', toTop);
+  window.addEventListener('pageshow', function (e) { if (e.persisted) toTop(); });
+
   /* ---------- Theme toggle ---------- */
   var toggle = document.getElementById('themeToggle');
   var metaThemes = document.querySelectorAll('meta[name="theme-color"]');
